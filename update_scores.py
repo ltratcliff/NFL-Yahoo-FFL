@@ -4,6 +4,9 @@ import json
 from json import dumps
 import datetime
 import requests
+import logging
+
+logging.getLogger('yahoo_oauth').setLevel(logging.INFO)
 
 oauth = OAuth2(None, None, from_file='./auth/oauth2yahoo.json')
 if not oauth.token_is_valid():
@@ -29,8 +32,9 @@ def UpdateScoreboards(game_key):
     response = oauth.session.get(url, params={'format': 'json'})
     r = response.json()
     file_name = 'scoreboard.json'
-    with open(f'/tmp/{file_name}', 'w') as outfile:
+    with open(f'{file_name}', 'w') as outfile:
         json.dump(r, outfile)
+    PrintScores(r)
     return
 
 def GetGameWeek():
@@ -43,6 +47,21 @@ def GetGameWeek():
         end = datetime.datetime.fromisoformat(data['sections'][1]['entries'][i]['endDate'])
         if start <= today <= end:
             return data['sections'][1]['entries'][i]['value']
+
+def PrintScores(scores):
+    matchups = scores['fantasy_content']['league'][1]['scoreboard']['0']['matchups'].keys()
+
+    for i in matchups:
+        if i == 'count':
+            continue
+        match = scores['fantasy_content']['league'][1]['scoreboard']['0']['matchups'][i]
+        team1 = match['matchup']['0']['teams']['0']
+        team2 = match['matchup']['0']['teams']['1']
+        team1_name = team1['team'][0][2]['name']
+        team2_name = team2['team'][0][2]['name']
+        team1_score = team1['team'][1]['team_points']['total']
+        team2_score = team2['team'][1]['team_points']['total']
+        print(f"{team1_name:26} {team1_score} - {team2_score} {team2_name:20}")
 
 
 def main():
